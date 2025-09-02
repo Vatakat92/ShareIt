@@ -1,29 +1,58 @@
 package ru.practicum.item;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.item.dto.ItemDto;
+import org.springframework.validation.annotation.Validated;
+import ru.practicum.validation.Create;
+import ru.practicum.validation.Update;
+import java.net.URI;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("/items")
 @RequiredArgsConstructor
+@RequestMapping("/items")
+@Slf4j
+@Validated
 public class ItemController {
     private final ItemService itemService;
 
-    @GetMapping
-    public List<Item> get(@RequestHeader("X-Later-User-Id") long userId) {
-        return itemService.getItems(userId);
-    }
-
     @PostMapping
-    public Item add(@RequestHeader("X-Later-User-Id") Long userId,
-                    @RequestBody Item item) {
-        return itemService.addNewItem(userId, item);
+    public ResponseEntity<ItemDto> createItem(@RequestHeader("X-Sharer-User-Id") Long userId,
+                              @Validated(Create.class) @RequestBody ItemDto dto) {
+        log.info("Create item request: ownerId={} name={}", userId, dto.getName());
+        ItemDto created = itemService.createItem(dto, userId);
+        URI location = URI.create("/items/" + created.getId());
+        log.info("Item created: id={} ownerId={}", created.getId(), userId);
+        return ResponseEntity.created(location).body(created);
     }
 
-    @DeleteMapping("/{itemId}")
-    public void deleteItem(@RequestHeader("X-Later-User-Id") long userId,
-                           @PathVariable(name="itemId") long itemId) {
-        itemService.deleteItem(userId, itemId);
+    @PatchMapping("/{itemId}")
+    public ItemDto updateItem(@RequestHeader("X-Sharer-User-Id") Long userId,
+                              @PathVariable Long itemId,
+                              @Validated(Update.class) @RequestBody ItemDto dto) {
+        log.info("Update item request: id={} ownerId={} name={} available={}",
+                itemId, userId, dto != null ? dto.getName() : null, dto != null ? dto.getAvailable() : null);
+        return itemService.updateItem(itemId, dto, userId);
+    }
+
+    @GetMapping("/{itemId}")
+    public ItemDto getItemById(@PathVariable Long itemId) {
+        log.info("Get item by id: {}", itemId);
+        return itemService.getItemById(itemId);
+    }
+
+    @GetMapping
+    public List<ItemDto> getAllItemsByOwner(@RequestHeader("X-Sharer-User-Id") Long userId) {
+        log.info("Get items by owner: {}", userId);
+        return itemService.getAllItemsByOwner(userId);
+    }
+
+    @GetMapping("/search")
+    public List<ItemDto> searchItems(@RequestParam String text) {
+        log.info("Search items: text='{}'", text);
+        return itemService.searchItems(text);
     }
 }

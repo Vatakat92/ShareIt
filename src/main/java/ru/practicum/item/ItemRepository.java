@@ -1,6 +1,7 @@
 package ru.practicum.item;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ItemRepository {
 
@@ -8,5 +9,7 @@ public interface ItemRepository {
 
     Item save(Item item);
 
-    void deleteByUserIdAndItemId(long userId, long itemId);
+    Optional<Item> findById(Long id);
+
+    List<Item> findAll();
 }

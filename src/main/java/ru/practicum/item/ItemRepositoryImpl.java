@@ -1,14 +1,12 @@
 package ru.practicum.item;
 
-import org.springframework.stereotype.Repository;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.Optional;
 
-@Repository
 public class ItemRepositoryImpl implements ItemRepository {
 
     private final Map<Long, Item> storage = new ConcurrentHashMap<>();
@@ -18,7 +16,7 @@ public class ItemRepositoryImpl implements ItemRepository {
     public List<Item> findByUserId(long userId) {
         List<Item> result = new ArrayList<>();
         for (Item item : storage.values()) {
-            if (item.getUserId() != null && item.getUserId() == userId) {
+            if (item.getOwner() != null && item.getOwner().getId() != null && item.getOwner().getId() == userId) {
                 result.add(item);
             }
         }
@@ -36,10 +34,12 @@ public class ItemRepositoryImpl implements ItemRepository {
     }
 
     @Override
-    public void deleteByUserIdAndItemId(long userId, long itemId) {
-        Item current = storage.get(itemId);
-        if (current != null && current.getUserId() != null && current.getUserId() == userId) {
-            storage.remove(itemId);
-        }
+    public Optional<Item> findById(Long id) {
+        return Optional.ofNullable(storage.get(id));
+    }
+
+    @Override
+    public List<Item> findAll() {
+        return new ArrayList<>(storage.values());
     }
 }

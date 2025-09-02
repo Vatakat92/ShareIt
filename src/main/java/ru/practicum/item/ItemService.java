@@ -1,12 +1,25 @@
 package ru.practicum.item;
 
+import ru.practicum.item.dto.ItemDto;
+
 import java.util.List;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import ru.practicum.validation.Create;
+import ru.practicum.validation.Update;
 
+@Validated
 public interface ItemService {
+    @Validated(Create.class)
+    ItemDto createItem(@Valid ItemDto dto, @NotNull Long ownerId);
 
-    List<Item> getItems(long userId);
+    @Validated(Update.class)
+    ItemDto updateItem(@NotNull Long itemId, @Valid ItemDto dto, @NotNull Long ownerId);
 
-    Item addNewItem(Long userId, Item item);
+    ItemDto getItemById(@NotNull Long itemId);
 
-    void deleteItem(long userId, long itemId);
+    List<ItemDto> getAllItemsByOwner(@NotNull Long ownerId);
+
+    List<ItemDto> searchItems(String text);
 }
