@@ -4,6 +4,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -19,17 +20,19 @@ public class InMemoryUserRepository implements UserRepository {
 
     @Override
     public User save(User user) {
-        user.setId(nextId(user.getId()));
-        storage.put(user.getId(), user);
+        long id = idSequence.incrementAndGet();
+        user.setId(id);
+        storage.put(id, user);
         return user;
     }
 
-    private long nextId(Long currentId) {
-        if (currentId == null) {
-            return idSequence.incrementAndGet();
+    @Override
+    public User update(User user) {
+        Long id = user.getId();
+        if (id == null || !storage.containsKey(id)) {
+            throw new NoSuchElementException("User not found: " + id);
         }
-        idSequence.updateAndGet(curr -> Math.max(curr, currentId));
-        return currentId;
+        storage.put(id, user);
+        return user;
     }
-
 }

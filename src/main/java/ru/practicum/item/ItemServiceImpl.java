@@ -3,6 +3,7 @@ package ru.practicum.item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import ru.practicum.item.dto.ItemDto;
 import ru.practicum.user.User;
 import ru.practicum.user.UserMapper;
@@ -17,6 +18,7 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 public class ItemServiceImpl implements ItemService {
     private static final Comparator<Item> BY_ID = Comparator.comparing(Item::getId);
 
@@ -27,7 +29,6 @@ public class ItemServiceImpl implements ItemService {
     public ItemDto createItem(ItemDto dto, Long ownerId) {
         log.info("Create item: ownerId={} name={}", ownerId, dto != null ? dto.getName() : null);
         validateNewItem(dto, ownerId);
-
         User owner = UserMapper.toUser(userService.getUserById(ownerId));
         Item item = ItemMapper.toItem(dto, owner);
 
@@ -46,8 +47,8 @@ public class ItemServiceImpl implements ItemService {
                 .orElseThrow(() -> new NoSuchElementException("Item not found: " + itemId));
 
         checkOwner(existing, ownerId);
-        validateItemDtoForUpdate(dto);
 
+        assert dto != null;
         updateItemFields(existing, dto);
         itemRepository.save(existing);
 
@@ -87,12 +88,12 @@ public class ItemServiceImpl implements ItemService {
 
 
     private void validateNewItem(ItemDto dto, Long ownerId) {
-        // Method-level validation handles dto and fields; ensure owner exists
+        if (dto == null) {
+            log.warn("Attempt to create item with null DTO");
+            throw new IllegalArgumentException("Item DTO cannot be null");
+        }
+        log.debug("Validating new item for ownerId: {}", ownerId);
         userService.getUserById(ownerId);
-    }
-
-    private void validateItemDtoForUpdate(ItemDto dto) {
-        // Method-level validation with Update group checks payload shape; no-op here
     }
 
     private void checkOwner(Item item, Long ownerId) {

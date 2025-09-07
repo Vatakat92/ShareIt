@@ -1,6 +1,7 @@
 package ru.practicum.user;
 
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import ru.practicum.user.dto.UserDto;
 import ru.practicum.exception.ConflictException;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 @Slf4j
+@Validated
 public class UserServiceImpl implements UserService {
     private static final Comparator<User> BY_ID = Comparator.comparing(User::getId);
     private final Map<Long, User> users = new ConcurrentHashMap<>();
@@ -34,27 +36,38 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto updateUser(Long id, UserDto dto) {
-        log.info("Update user: id={} email={} name={}", id, dto != null ? dto.getEmail() : null, dto != null ? dto.getName() : null);
-        if (dto == null) throw new IllegalArgumentException("UserDto is null");
+        log.info("Update user: id={} email={} name={}", id,
+                dto != null ? dto.getEmail() : null,
+                dto != null ? dto.getName() : null);
+
         User existing = users.get(id);
         if (existing == null) {
             log.warn("User not found: {}", id);
             throw new NoSuchElementException("User not found: " + id);
         }
+
+        if (dto == null) {
+            log.error("Null UserDto passed to updateUser for id={}", id);
+            throw new IllegalArgumentException("UserDto must not be null");
+        }
+
         if (dto.getEmail() == null && dto.getName() == null) {
             return UserMapper.toUserDto(existing);
         }
+
         if (dto.getEmail() != null && !dto.getEmail().equals(existing.getEmail())) {
-            String newEmail = dto.getEmail();
-            ensureEmailUnique(newEmail, id);
-            existing.setEmail(newEmail);
+            ensureEmailUnique(dto.getEmail(), id);
+            existing.setEmail(dto.getEmail());
         }
+
         if (dto.getName() != null) {
             existing.setName(dto.getName());
         }
+
         log.info("User updated: id={}", id);
         return UserMapper.toUserDto(existing);
     }
+
 
     @Override
     public UserDto getUserById(Long id) {
@@ -102,9 +115,7 @@ public class UserServiceImpl implements UserService {
     private void validateNewEmail(UserDto dto) {
         if (dto == null) throw new IllegalArgumentException("UserDto is null");
         String email = dto.getEmail();
-        // DTO-level validation (Create group) enforces @NotBlank and @Email for create
         ensureEmailUnique(email, null);
-        // store email as provided (keep original casing)
         dto.setEmail(email);
     }
 
